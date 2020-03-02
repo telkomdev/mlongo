@@ -1,0 +1,7 @@
+github.com/telkomdev/igstole v0.0.0-20200212155436-1989285cbd9c h1:OxZY9zgTXmDX1d4whMFmb9YDMts2v9ghvPQ4H0qFQhQ=
+github.com/telkomdev/igstole v0.0.0-20200212155436-1989285cbd9c/go.mod h1:TglrxXFmKSPwJ442fjl41kAGJL48wCxfvp/PvU6Oezk=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 h1:k7pJ2yAPLPgbskkFdhRCsA77k2fySZ1zf2zCjvQCiIM=
+golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
