@@ -233,10 +233,10 @@ func main() {
 		}
 	}
 
-	address := fmt.Sprintf("mongodb://%s:%d", host, port)
+	address := fmt.Sprintf("mongodb://%s:%d/%s", host, port, dbName)
 
 	if username != "" {
-		address = fmt.Sprintf("mongodb://%s:%s@%s:%d", username, password, host, port)
+		address = fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", username, password, host, port, dbName)
 	}
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(address))
