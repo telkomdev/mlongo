@@ -19,7 +19,12 @@ type (
 )
 
 const (
-	ASC  = 1
+	// Version of mlongo
+	Version = "v1.0.0"
+
+	// ASC index order type
+	ASC = 1
+	// DESC index order type
 	DESC = -1
 
 	// Create command
@@ -205,7 +210,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("version %s\n", "v1.0.0")
+		fmt.Printf("version %s\n", Version)
 		os.Exit(0)
 	}
 
