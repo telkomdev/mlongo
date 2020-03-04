@@ -57,8 +57,74 @@ func CommandFromString(c string) Command {
 }
 
 // CreateIndex function
-func CreateIndex(indexView mongo.IndexView) {
+func CreateIndex(ctx context.Context, indexView mongo.IndexView, fieldName, order string, unique bool) error {
+	if order != "asc" && order != "desc" {
+		return fmt.Errorf("invalid order type %s\n", order)
+	}
 
+	orderType := ASC
+
+	if order == "desc" {
+		orderType = DESC
+	}
+
+	indexOptions := &options.IndexOptions{}
+	if unique {
+		indexOptions.SetUnique(true)
+	}
+
+	indexModel := mongo.IndexModel{
+		Keys: bson.M{
+			fieldName: orderType,
+		},
+		Options: indexOptions,
+	}
+
+	idx, err := indexView.CreateOne(ctx, indexModel)
+	if err != nil {
+		return fmt.Errorf("error execute create index : %s\n", err.Error())
+	}
+
+	fmt.Printf("create index success * index name: %s\n", idx)
+
+	return nil
+}
+
+// DropIndex function
+func DropIndex(ctx context.Context, indexView mongo.IndexView, indexName string) error {
+	opts := options.DropIndexes().SetMaxTime(2 * time.Second)
+	raw, err := indexView.DropOne(ctx, indexName, opts)
+	if err != nil {
+		return fmt.Errorf("error execute drop index : %s\n", err.Error())
+	}
+
+	fmt.Printf("drop index success * %s\n", raw.String())
+
+	return nil
+}
+
+// ListIndex function
+func ListIndex(ctx context.Context, indexView mongo.IndexView) error {
+	opts := options.ListIndexes().SetMaxTime(2 * time.Second)
+	listIndex, err := indexView.List(ctx, opts)
+	if err != nil {
+		return fmt.Errorf("error execute list index : %s\n", err.Error())
+	}
+
+	fmt.Println("List Indexes: ")
+
+	for listIndex.Next(ctx) {
+		var res bson.M
+		err = listIndex.Decode(&res)
+		if err != nil {
+			return fmt.Errorf("error show list index : %s\n", err.Error())
+		}
+
+		fmt.Printf("- %s\n", res["name"])
+
+	}
+
+	return nil
 }
 
 func main() {
@@ -189,37 +255,11 @@ func main() {
 
 	// createCommand parsed
 	if createCommand.Parsed() {
-
-		if order != "asc" && order != "desc" {
-			fmt.Printf("invalid order type %s\n", order)
-			os.Exit(1)
-		}
-
-		orderType := ASC
-
-		if order == "desc" {
-			orderType = DESC
-		}
-
-		indexOptions := &options.IndexOptions{}
-		if unique {
-			indexOptions.SetUnique(true)
-		}
-
-		indexModel := mongo.IndexModel{
-			Keys: bson.M{
-				fieldName: orderType,
-			},
-			Options: indexOptions,
-		}
-
-		idx, err := indexes.CreateOne(ctx, indexModel)
+		err := CreateIndex(ctx, indexes, fieldName, order, unique)
 		if err != nil {
-			fmt.Printf("error execute create index : %s\n", err.Error())
+			fmt.Println(err.Error())
 			os.Exit(1)
 		}
-
-		fmt.Printf("create index success * index name: %s\n", idx)
 
 		disconnect()
 		os.Exit(0)
@@ -228,14 +268,11 @@ func main() {
 
 	// dropCommand parsed
 	if dropCommand.Parsed() {
-		opts := options.DropIndexes().SetMaxTime(2 * time.Second)
-		raw, err := indexes.DropOne(ctx, indexName, opts)
+		err := DropIndex(ctx, indexes, indexName)
 		if err != nil {
-			fmt.Printf("error execute drop index : %s\n", err.Error())
+			fmt.Println(err.Error())
 			os.Exit(1)
 		}
-
-		fmt.Printf("drop index success * %s\n", raw.String())
 
 		disconnect()
 		os.Exit(0)
@@ -243,25 +280,10 @@ func main() {
 
 	// listCommand parsed
 	if listCommand.Parsed() {
-		opts := options.ListIndexes().SetMaxTime(2 * time.Second)
-		listIndex, err := indexes.List(ctx, opts)
+		err := ListIndex(ctx, indexes)
 		if err != nil {
-			fmt.Printf("error execute list index : %s\n", err.Error())
+			fmt.Println(err.Error())
 			os.Exit(1)
-		}
-
-		fmt.Println("List Indexes: ")
-
-		for listIndex.Next(ctx) {
-			var res bson.M
-			err = listIndex.Decode(&res)
-			if err != nil {
-				fmt.Printf("error show list index : %s\n", err.Error())
-				os.Exit(1)
-			}
-
-			fmt.Printf("- %s\n", res["name"])
-
 		}
 
 		disconnect()
