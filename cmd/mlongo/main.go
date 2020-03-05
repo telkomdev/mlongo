@@ -108,25 +108,38 @@ func DropIndex(ctx context.Context, indexView mongo.IndexView, indexName string)
 	return nil
 }
 
-// ListIndex function
-func ListIndex(ctx context.Context, indexView mongo.IndexView) error {
-	opts := options.ListIndexes().SetMaxTime(2 * time.Second)
-	listIndex, err := indexView.List(ctx, opts)
+// ShowListIndex function
+func ShowListIndex(ctx context.Context, database *mongo.Database) error {
+	filter := make(bson.M)
+	collections, err := database.ListCollectionNames(ctx, filter)
 	if err != nil {
-		return fmt.Errorf("error execute list index : %s\n", err.Error())
+		return fmt.Errorf("error showing list index : %s\n", err.Error())
 	}
 
-	fmt.Println("List Indexes: ")
+	for _, collectionName := range collections {
 
-	for listIndex.Next(ctx) {
-		var res bson.M
-		err = listIndex.Decode(&res)
+		collection := database.Collection(collectionName)
+
+		indexes := collection.Indexes()
+
+		opts := options.ListIndexes().SetMaxTime(2 * time.Second)
+		listIndex, err := indexes.List(ctx, opts)
 		if err != nil {
-			return fmt.Errorf("error show list index : %s\n", err.Error())
+			return fmt.Errorf("error execute list index : %s\n", err.Error())
 		}
 
-		fmt.Printf("- %s\n", res["name"])
+		fmt.Printf("List Indexes from Collection : %s\n", collection.Name())
 
+		for listIndex.Next(ctx) {
+			var res bson.M
+			err = listIndex.Decode(&res)
+			if err != nil {
+				return fmt.Errorf("error show list index : %s\n", err.Error())
+			}
+
+			fmt.Printf("- %s\n", res["name"])
+
+		}
 	}
 
 	return nil
@@ -254,7 +267,9 @@ func main() {
 
 	disconnect := func() { client.Disconnect(ctx) }
 
-	collection := client.Database(dbName).Collection(collectionName)
+	database := client.Database(dbName)
+
+	collection := database.Collection(collectionName)
 
 	indexes := collection.Indexes()
 
@@ -285,7 +300,7 @@ func main() {
 
 	// listCommand parsed
 	if listCommand.Parsed() {
-		err := ListIndex(ctx, indexes)
+		err := ShowListIndex(ctx, database)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
