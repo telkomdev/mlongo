@@ -4,7 +4,7 @@ MongoDB Index Utility.
 
 Current features
 
-- (Manage MongoDB Indexes with ease) With Mlongo, you can `create`, `show indexes`, and `drop index` with simple command line program.
+- (Manage MongoDB Indexes with easy) With Mlongo, you can `create`, `show indexes`, and `drop index` with simple command line program.
 
 ### Usage
 
