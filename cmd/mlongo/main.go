@@ -139,7 +139,7 @@ func ShowListIndex(ctx context.Context, database *mongo.Database) error {
 
 			var unique bool
 			if res["unique"] != nil {
-				unique = true
+				unique = res["unique"].(bool)
 			}
 
 			fmt.Printf("- %s | unique = %t\n", res["name"], unique)
