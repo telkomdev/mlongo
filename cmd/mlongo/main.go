@@ -128,6 +128,7 @@ func ShowListIndex(ctx context.Context, database *mongo.Database) error {
 			return fmt.Errorf("error execute list index : %s\n", err.Error())
 		}
 
+		fmt.Println()
 		fmt.Printf("List Indexes from Collection : %s\n", collection.Name())
 
 		for listIndex.Next(ctx) {
@@ -145,6 +146,7 @@ func ShowListIndex(ctx context.Context, database *mongo.Database) error {
 			fmt.Printf("- %s | unique = %t\n", res["name"], unique)
 
 		}
+
 	}
 
 	return nil
