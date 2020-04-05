@@ -137,7 +137,12 @@ func ShowListIndex(ctx context.Context, database *mongo.Database) error {
 				return fmt.Errorf("error show list index : %s\n", err.Error())
 			}
 
-			fmt.Printf("- %s\n", res["name"])
+			var unique bool
+			if res["unique"] != nil {
+				unique = true
+			}
+
+			fmt.Printf("- %s | unique = %t\n", res["name"], unique)
 
 		}
 	}
