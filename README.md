@@ -1,6 +1,6 @@
 # Mlongo
 
-MongoDB Index Utility.
+MongoDB Command Line Utility.
 
 Current features
 
