@@ -10,6 +10,8 @@ Current features
 
 Build: this command will produce a binary file insde `bin` folder.
 ```shell
+$ git clone https://github.com/telkomdev/mlongo.git
+$ cd mlongo/
 $ make build
 ```
 Export `bin` folder from your environment file. Eg: `.bash_profile` or `.profile` file. So `mlongo` will available in all place.
