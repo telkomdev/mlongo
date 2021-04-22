@@ -1,7 +1,7 @@
 .PHONY : test build clean format
 
 build:
-	go build github.com/telkomdev/mlongo/cmd/mlongo
+	go build -o bin/mlongo github.com/telkomdev/mlongo/cmd/mlongo
 
 test:
 	go test ./...
