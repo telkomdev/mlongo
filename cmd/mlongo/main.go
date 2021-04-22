@@ -8,149 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/telkomdev/mlongo/internal/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-)
-
-type (
-	// Command type
-	Command int
 )
 
 const (
 	// Version of mlongo
 	Version = "v1.0.0"
-
-	// ASC index order type
-	ASC = 1
-	// DESC index order type
-	DESC = -1
-
-	// Create command
-	Create Command = iota
-
-	// Drop command
-	Drop
-
-	//SubscribeCommand command
-	List
 )
-
-// String function
-func (c Command) String() string {
-	switch c {
-	case Create:
-		return "create"
-	case List:
-		return "list"
-	default:
-		panic("command not found")
-	}
-}
-
-// CommandFromString function
-func CommandFromString(c string) Command {
-	switch c {
-	case "create":
-		return Create
-	case "list":
-		return List
-	default:
-		panic("command not found")
-	}
-}
-
-// CreateIndex function
-func CreateIndex(ctx context.Context, indexView mongo.IndexView, fieldName, order string, unique bool) error {
-	if order != "asc" && order != "desc" {
-		return fmt.Errorf("invalid order type %s\n", order)
-	}
-
-	orderType := ASC
-
-	if order == "desc" {
-		orderType = DESC
-	}
-
-	indexOptions := &options.IndexOptions{}
-	if unique {
-		indexOptions.SetUnique(true)
-	}
-
-	indexModel := mongo.IndexModel{
-		Keys: bson.M{
-			fieldName: orderType,
-		},
-		Options: indexOptions,
-	}
-
-	idx, err := indexView.CreateOne(ctx, indexModel)
-	if err != nil {
-		return fmt.Errorf("error execute create index : %s\n", err.Error())
-	}
-
-	fmt.Printf("create index success * index name: %s\n", idx)
-
-	return nil
-}
-
-// DropIndex function
-func DropIndex(ctx context.Context, indexView mongo.IndexView, indexName string) error {
-	opts := options.DropIndexes().SetMaxTime(2 * time.Second)
-	raw, err := indexView.DropOne(ctx, indexName, opts)
-	if err != nil {
-		return fmt.Errorf("error execute drop index : %s\n", err.Error())
-	}
-
-	fmt.Printf("drop index success * %s\n", raw.String())
-
-	return nil
-}
-
-// ShowListIndex function
-func ShowListIndex(ctx context.Context, database *mongo.Database) error {
-	filter := make(bson.M)
-	collections, err := database.ListCollectionNames(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("error showing list index : %s\n", err.Error())
-	}
-
-	for _, collectionName := range collections {
-
-		collection := database.Collection(collectionName)
-
-		indexes := collection.Indexes()
-
-		opts := options.ListIndexes().SetMaxTime(2 * time.Second)
-		listIndex, err := indexes.List(ctx, opts)
-		if err != nil {
-			return fmt.Errorf("error execute list index : %s\n", err.Error())
-		}
-
-		fmt.Println()
-		fmt.Printf("List Indexes from Collection : %s\n", collection.Name())
-
-		for listIndex.Next(ctx) {
-			var res bson.M
-			err = listIndex.Decode(&res)
-			if err != nil {
-				return fmt.Errorf("error show list index : %s\n", err.Error())
-			}
-
-			var unique bool
-			if res["unique"] != nil {
-				unique = res["unique"].(bool)
-			}
-
-			fmt.Printf("- %s | unique = %t\n", res["name"], unique)
-
-		}
-
-	}
-
-	return nil
-}
 
 func main() {
 	var (
@@ -167,53 +33,70 @@ func main() {
 		showVersion    bool
 	)
 
-	// sub command
-	createCommand := flag.NewFlagSet("create", flag.ExitOnError)
-	dropCommand := flag.NewFlagSet("drop", flag.ExitOnError)
-	listCommand := flag.NewFlagSet("list", flag.ExitOnError)
+	// collection sub command
+	listCollectionCommand := flag.NewFlagSet("list", flag.ExitOnError)
 
-	// createCommand options
-	createCommand.StringVar(&host, "host", "localhost", "host")
-	createCommand.IntVar(&port, "port", 27017, "port")
-	createCommand.StringVar(&dbName, "database", "", "database name")
-	createCommand.StringVar(&username, "username", "", "username")
-	createCommand.StringVar(&password, "password", "", "password")
-	createCommand.StringVar(&collectionName, "collection", "", "collection name")
-	createCommand.StringVar(&fieldName, "field", "", "field name")
-	createCommand.StringVar(&order, "order", "", "order type")
-	createCommand.BoolVar(&unique, "unique", false, "unique index")
+	// index sub command
+	createIndexCommand := flag.NewFlagSet("create", flag.ExitOnError)
+	dropIndexCommand := flag.NewFlagSet("drop", flag.ExitOnError)
+	listIndexCommand := flag.NewFlagSet("list", flag.ExitOnError)
 
-	// dropCommand options
-	dropCommand.StringVar(&host, "host", "localhost", "host")
-	dropCommand.IntVar(&port, "port", 27017, "port")
-	dropCommand.StringVar(&dbName, "database", "", "database name")
-	dropCommand.StringVar(&username, "username", "", "username")
-	dropCommand.StringVar(&password, "password", "", "password")
-	dropCommand.StringVar(&collectionName, "collection", "", "collection name")
-	dropCommand.StringVar(&indexName, "name", "", "index name that will be drop")
+	// createIndexCommand options
+	createIndexCommand.StringVar(&host, "host", "localhost", "host")
+	createIndexCommand.IntVar(&port, "port", 27017, "port")
+	createIndexCommand.StringVar(&dbName, "database", "", "database name")
+	createIndexCommand.StringVar(&username, "username", "", "username")
+	createIndexCommand.StringVar(&password, "password", "", "password")
+	createIndexCommand.StringVar(&collectionName, "collection", "", "collection name")
+	createIndexCommand.StringVar(&fieldName, "field", "", "field name")
+	createIndexCommand.StringVar(&order, "order", "", "order type")
+	createIndexCommand.BoolVar(&unique, "unique", false, "unique index")
 
-	// listCommand options
-	listCommand.StringVar(&host, "host", "localhost", "host")
-	listCommand.IntVar(&port, "port", 27017, "port")
-	listCommand.StringVar(&dbName, "database", "", "database name")
-	listCommand.StringVar(&username, "username", "", "username")
-	listCommand.StringVar(&password, "password", "", "password")
-	listCommand.StringVar(&collectionName, "collection", "", "collection name")
+	// dropIndexCommand options
+	dropIndexCommand.StringVar(&host, "host", "localhost", "host")
+	dropIndexCommand.IntVar(&port, "port", 27017, "port")
+	dropIndexCommand.StringVar(&dbName, "database", "", "database name")
+	dropIndexCommand.StringVar(&username, "username", "", "username")
+	dropIndexCommand.StringVar(&password, "password", "", "password")
+	dropIndexCommand.StringVar(&collectionName, "collection", "", "collection name")
+	dropIndexCommand.StringVar(&indexName, "name", "", "index name that will be drop")
+
+	// listIndexCommand options
+	listIndexCommand.StringVar(&host, "host", "localhost", "host")
+	listIndexCommand.IntVar(&port, "port", 27017, "port")
+	listIndexCommand.StringVar(&dbName, "database", "", "database name")
+	listIndexCommand.StringVar(&username, "username", "", "username")
+	listIndexCommand.StringVar(&password, "password", "", "password")
+
+	// listCollectionCommand options
+	listCollectionCommand.StringVar(&host, "host", "localhost", "host")
+	listCollectionCommand.IntVar(&port, "port", 27017, "port")
+	listCollectionCommand.StringVar(&dbName, "database", "", "database name")
+	listCollectionCommand.StringVar(&username, "username", "", "username")
+	listCollectionCommand.StringVar(&password, "password", "", "password")
 
 	flag.BoolVar(&showVersion, "version", false, "show version")
 
 	flag.Usage = func() {
 		fmt.Println("Usage:		mlongo [options]")
 		fmt.Println()
+
+		fmt.Println("Show List Collection: ")
+		fmt.Println("mlongo collection list -host localhost -port 27017 -username admin -password admin -database mydb")
+		fmt.Println()
+
 		fmt.Println("Show List Index: ")
-		fmt.Println("mlongo list -host localhost -port 27017 -username admin -password admin -database mydb -collection users")
+		fmt.Println("mlongo index list -host localhost -port 27017 -username admin -password admin -database mydb")
 		fmt.Println()
+
 		fmt.Println("Create Index: ")
-		fmt.Println("mlongo create -host localhost -port 27017 -username admin -password admin -database mydb -collection users -field name -order asc -unique")
+		fmt.Println("mlongo index create -host localhost -port 27017 -username admin -password admin -database mydb -collection users -field name -order asc -unique")
 		fmt.Println()
+
 		fmt.Println("Drop Index: ")
-		fmt.Println("mlongo drop -host localhost -port 27017 -username admin -password admin -database mydb -collection users -name index_name_1")
+		fmt.Println("mlongo index drop -host localhost -port 27017 -username admin -password admin -database mydb -collection users -name index_name_1")
 		fmt.Println()
+
 		fmt.Println("Options:")
 		fmt.Println("-host 			mongodb host eg: localhost, 127.0.0.1")
 		fmt.Println("-port 			mongodb port eg: 27017")
@@ -241,15 +124,37 @@ func main() {
 
 	if !strings.Contains(os.Args[1], "version") {
 		switch os.Args[1] {
-		case "create":
-			createCommand.Parse(os.Args[2:])
-		case "drop":
-			dropCommand.Parse(os.Args[2:])
-		case "list":
-			listCommand.Parse(os.Args[2:])
+		case "collection":
+			switch os.Args[2] {
+			case "list":
+				listCollectionCommand.Parse(os.Args[3:])
+				break
+			default:
+				fmt.Printf("invalid sub command %s\n", os.Args[2])
+				os.Exit(1)
+			}
+			break
+		case "index":
+			switch os.Args[2] {
+			case "create":
+				createIndexCommand.Parse(os.Args[3:])
+				break
+			case "drop":
+				dropIndexCommand.Parse(os.Args[3:])
+				break
+			case "list":
+				listIndexCommand.Parse(os.Args[3:])
+				break
+			default:
+				fmt.Printf("invalid sub command %s\n", os.Args[2])
+				os.Exit(1)
+			}
+			break
+
 		default:
 			fmt.Printf("invalid sub command %s\n", os.Args[1])
 			os.Exit(1)
+
 		}
 	}
 
@@ -259,13 +164,14 @@ func main() {
 		address = fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", username, password, host, port, dbName)
 	}
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(address))
+	client, err := mongo.NewClient(options.Client().ApplyURI(address), options.Client().SetConnectTimeout(time.Second*4))
 	if err != nil {
 		fmt.Printf("error create client %s\n", err.Error())
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
 
 	if err := client.Connect(ctx); err != nil {
 		fmt.Printf("error create connection %s\n", err.Error())
@@ -276,13 +182,25 @@ func main() {
 
 	database := client.Database(dbName)
 
-	collection := database.Collection(collectionName)
+	mongoIndex := mongodb.NewMongoIndex(database)
+	mongoCollection := mongodb.NewMongoCollection(database, dbName)
 
-	indexes := collection.Indexes()
+	// collection command
+	if listCollectionCommand.Parsed() {
+		err := mongoCollection.ShowList(ctx)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 
-	// createCommand parsed
-	if createCommand.Parsed() {
-		err := CreateIndex(ctx, indexes, fieldName, order, unique)
+		disconnect()
+		os.Exit(0)
+	}
+
+	// index command
+	// createIndexCommand parsed
+	if createIndexCommand.Parsed() {
+		err := mongoIndex.Create(ctx, collectionName, fieldName, order, unique)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
@@ -293,9 +211,9 @@ func main() {
 
 	}
 
-	// dropCommand parsed
-	if dropCommand.Parsed() {
-		err := DropIndex(ctx, indexes, indexName)
+	// dropIndexCommand parsed
+	if dropIndexCommand.Parsed() {
+		err := mongoIndex.Drop(ctx, collectionName, indexName)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
@@ -305,9 +223,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	// listCommand parsed
-	if listCommand.Parsed() {
-		err := ShowListIndex(ctx, database)
+	// listIndexCommand parsed
+	if listIndexCommand.Parsed() {
+		err := mongoIndex.ShowList(ctx)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
