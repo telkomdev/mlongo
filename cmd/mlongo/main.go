@@ -36,6 +36,9 @@ func main() {
 	// collection sub command
 	listCollectionCommand := flag.NewFlagSet("list", flag.ExitOnError)
 
+	// database sub command
+	listDatabaseCommand := flag.NewFlagSet("list", flag.ExitOnError)
+
 	// index sub command
 	createIndexCommand := flag.NewFlagSet("create", flag.ExitOnError)
 	dropIndexCommand := flag.NewFlagSet("drop", flag.ExitOnError)
@@ -75,17 +78,27 @@ func main() {
 	listCollectionCommand.StringVar(&username, "username", "", "username")
 	listCollectionCommand.StringVar(&password, "password", "", "password")
 
+	// listDatabaseCommand options
+	listDatabaseCommand.StringVar(&host, "host", "localhost", "host")
+	listDatabaseCommand.IntVar(&port, "port", 27017, "port")
+	listDatabaseCommand.StringVar(&username, "username", "", "username")
+	listDatabaseCommand.StringVar(&password, "password", "", "password")
+
 	flag.BoolVar(&showVersion, "version", false, "show version")
 
 	flag.Usage = func() {
 		fmt.Println("Usage:		mlongo [options]")
 		fmt.Println()
 
-		fmt.Println("Show List Collection: ")
+		fmt.Println("Show List of Collection: ")
 		fmt.Println("mlongo collection list -host localhost -port 27017 -username admin -password admin -database mydb")
 		fmt.Println()
 
-		fmt.Println("Show List Index: ")
+		fmt.Println("Show List of Database: ")
+		fmt.Println("mlongo db list -host localhost -port 27017 -username admin -password admin")
+		fmt.Println()
+
+		fmt.Println("Show List of Index: ")
 		fmt.Println("mlongo index list -host localhost -port 27017 -username admin -password admin -database mydb")
 		fmt.Println()
 
@@ -128,6 +141,16 @@ func main() {
 			switch os.Args[2] {
 			case "list":
 				listCollectionCommand.Parse(os.Args[3:])
+				break
+			default:
+				fmt.Printf("invalid sub command %s\n", os.Args[2])
+				os.Exit(1)
+			}
+			break
+		case "db":
+			switch os.Args[2] {
+			case "list":
+				listDatabaseCommand.Parse(os.Args[3:])
 				break
 			default:
 				fmt.Printf("invalid sub command %s\n", os.Args[2])
@@ -184,10 +207,23 @@ func main() {
 
 	mongoIndex := mongodb.NewMongoIndex(database)
 	mongoCollection := mongodb.NewMongoCollection(database, dbName)
+	mongoDatabase := mongodb.NewMongoDatabase(client)
 
 	// collection command
 	if listCollectionCommand.Parsed() {
 		err := mongoCollection.ShowList(ctx)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		disconnect()
+		os.Exit(0)
+	}
+
+	// database command
+	if listDatabaseCommand.Parsed() {
+		err := mongoDatabase.ShowList(ctx)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
