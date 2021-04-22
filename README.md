@@ -30,5 +30,5 @@ $ source ~/.bash_profile
 
 Show available options
 ```shell
-$ ./mlongo -h
+$ mlongo -h
 ```
